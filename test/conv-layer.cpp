@@ -18,10 +18,10 @@ int main(int argc, char** argv) {
     Model model = Model::create("conv-layer");
 
     // Process parameters
-    unsigned int in_size_x = 14;
-    unsigned int in_size_y = 14;
-    unsigned int in_channels = 512;
-    unsigned int out_channels = 512;
+    unsigned int in_size_x = 5;//14;
+    unsigned int in_size_y = 5;//14;
+    unsigned int in_channels = 128;//512;
+    unsigned int out_channels = 256;//512;
     unsigned int k_size_x = 3;
     unsigned int k_size_y = 3;
     if(argc == 7) {

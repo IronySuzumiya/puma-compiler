@@ -275,5 +275,9 @@ Vector operator*(TrainingMatrix M, Vector x);
 Vector operator*(Transpose M, Vector x);
 void operator-=(TrainingMatrix M, OuterProduct op);
 
+extern unsigned int input_size__;
+extern unsigned int output_size__;
+extern unsigned int tile_memory_size__;
+
 #endif
 

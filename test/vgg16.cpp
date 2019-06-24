@@ -14,6 +14,10 @@
 #include "conv-layer.h"
 #include "fully-connected-layer.h"
 
+unsigned int input_size__;
+unsigned int output_size__;
+unsigned int tile_memory_size__ = 32768;
+
 void isolated_fully_connected_layer(Model model, std::string layerName, unsigned int in_size, unsigned int out_size) {
 
     // Input vector
@@ -168,6 +172,10 @@ int main() {
     // Layer 16 (fully-connected) configurations
     unsigned int in_size16 = 4096;
     unsigned int out_size16 = 1000;
+
+    input_size__ = in_size_x * in_size_y * in_channels + in_size14 + in_size15 + in_size16;
+
+    output_size__ = out_size_x * out_size_y * out_channels + out_size14 + out_size15 + out_size16;
 
     // Define network
     auto out1 = conv_layer(model, "layer" + std::to_string(1), k_size_x1, k_size_y1, in_size_x1, in_size_y1, in_channels1, out_channels1, in_stream);
