@@ -75,16 +75,31 @@ void Placer::assignPMVMUs() {
 
 }
 
-unsigned int Placer::getPTile(ConstantMatrixTile* tile) {
-    return vtile2ptile_[partitioner_->getVTile(tile)];
+std::set<unsigned int> Placer::getPTile(ConstantMatrixTile* tile) {
+    std::set<unsigned int> tiles;
+    for(auto vTile : partitioner_->getVTile(tile)) {
+        tiles.insert(vtile2ptile_[vTile]);
+    }
+    return tiles;
+    //return vtile2ptile_[partitioner_->getVTile(tile)];
 }
 
-unsigned int Placer::getPCore(ConstantMatrixTile* tile) {
-    return vcore2pcore_[partitioner_->getVCore(tile)];
+std::set<unsigned int> Placer::getPCore(ConstantMatrixTile* tile) {
+    std::set<unsigned int> cores;
+    for(auto vCore : partitioner_->getVCore(tile)) {
+        cores.insert(vcore2pcore_[vCore]);
+    }
+    return cores;
+    //return vcore2pcore_[partitioner_->getVCore(tile)];
 }
 
-unsigned int Placer::getPMVMU(ConstantMatrixTile* tile) {
-    return vmvmu2pmvmu_[partitioner_->getVMVMU(tile)];
+std::set<unsigned int> Placer::getPMVMU(ConstantMatrixTile* tile) {
+    std::set<unsigned int> mvmus;
+    for(auto vMVMU : partitioner_->getVMVMU(tile)) {
+        mvmus.insert(vmvmu2pmvmu_[vMVMU]);
+    }
+    return mvmus;
+    //return vmvmu2pmvmu_[partitioner_->getVMVMU(tile)];
 }
 
 unsigned int Placer::getPTile(TrainingMatrixTile* tile) {

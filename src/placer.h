@@ -34,9 +34,9 @@ class Placer {
         unsigned int getNPMVMUs() { return nPMVMUs_; }
         unsigned int getNPCores() { return nPCores_; }
         unsigned int getNPTiles() { return nPTiles_; }
-        unsigned int getPMVMU(ConstantMatrixTile* tile);
-        unsigned int getPTile(ConstantMatrixTile* tile);
-        unsigned int getPCore(ConstantMatrixTile* tile);
+        std::set<unsigned int> getPMVMU(ConstantMatrixTile* tile);
+        std::set<unsigned int> getPTile(ConstantMatrixTile* tile);
+        std::set<unsigned int> getPCore(ConstantMatrixTile* tile);
         unsigned int getPMVMU(TrainingMatrixTile* tile);
         unsigned int getPTile(TrainingMatrixTile* tile);
         unsigned int getPCore(TrainingMatrixTile* tile);

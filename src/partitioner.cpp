@@ -65,17 +65,27 @@ void Partitioner::cloneAssignment(Operation* cloneFrom, Operation* cloneTo) {
     }
 }
 
-unsigned int Partitioner::getVMVMU(ConstantMatrixTile* tile) {
+std::set<unsigned int> Partitioner::getVMVMU(ConstantMatrixTile* tile) {
     assert(cmat2vmvmu_.count(tile) && "Virtual MVMU not assigned!");
     return cmat2vmvmu_[tile];
 }
 
-unsigned int Partitioner::getVCore(ConstantMatrixTile* tile) {
-    return vmvmu2vcore_[getVMVMU(tile)];
+std::set<unsigned int> Partitioner::getVCore(ConstantMatrixTile* tile) {
+    std::set<unsigned int> cores;
+    for(auto vMVMU : getVMVMU(tile)) {
+        cores.insert(vmvmu2vcore_[vMVMU]);
+    }
+    return cores;
+    //return vmvmu2vcore_[getVMVMU(tile)];
 }
 
-unsigned int Partitioner::getVTile(ConstantMatrixTile* tile) {
-    return vcore2vtile_[getVCore(tile)];
+std::set<unsigned int> Partitioner::getVTile(ConstantMatrixTile* tile) {
+    std::set<unsigned int> tiles;
+    for(auto vCore : getVCore(tile)) {
+        tiles.insert(vcore2vtile_[vCore]);
+    }
+    return tiles;
+    //return vcore2vtile_[getVCore(tile)];
 }
 
 unsigned int Partitioner::getVMVMU(TrainingMatrixTile* tile) {
@@ -231,16 +241,20 @@ void Partitioner::assignVMVMUsRandomly() {
 void Partitioner::assignVMVMUsAndSpreadAffinity() {
 
     // Reserve virtual MVMUs 0 and 1 for input and output tiles respectively
-    nVMVMUs_ = 2;
+    nTiles4input = (input_size__ - 1) / tile_memory_size__ + 1;
+    nTiles4output = (output_size__ - 1) / tile_memory_size__ + 1;
+
+    nVMVMUs_ = nTiles4input + nTiles4output;
 
     // Assign matrix tiles to virtual MVMUs
     if(model_->getModelType() == ModelImpl::INFERENCE) {
         for(ConstantMatrixTile* tile : cmatTiles_) {
-            unsigned int vMVMU = nVMVMUs_++;
-            cmat2vmvmu_[tile] = vMVMU;
+            unsigned int vMVMU;
             for(unsigned int u = 0; u < tile->numUsers(); ++u) {
+                vMVMU = nVMVMUs_++;
                 MVMOperation* mvm = tile->getUser(u);
                 assignVMVMU(mvm, vMVMU);
+                cmat2vmvmu_[tile].insert(vMVMU);
                 spreadVMVMUAffinityToOperands(mvm);
                 spreadVMVMUAffinityToUsers(mvm);
             }
@@ -336,15 +350,16 @@ void Partitioner::assignVCoresInVMVMUOrder() {
     vmvmu2vcore_.resize(nVMVMUs_);
 
     // Reserve virtual cores 0 and 1 for input and output tiles respectively
-    nVCores_ = 2;
-    vmvmu2vcore_[0] = 0;
-    vmvmu2vcore_[1] = 1;
+    nVCores_ = nTiles4input + nTiles4output;
+    for(unsigned int vMVMU = 0; vMVMU < nVCores_; ++vMVMU) {
+        vmvmu2vcore_[vMVMU] = vMVMU;
+    }
 
     // Assign virtual MVMUs to virtual cores in order
     unsigned int nMVMUSPerCore = (model_->getModelType() == ModelImpl::INFERENCE)?(N_CONSTANT_MVMUS_PER_CORE):(N_TRAINING_MVMUS_PER_CORE);
-    nVCores_ += (nVMVMUs_ - 2 - 1)/nMVMUSPerCore + 1; // -2 accounts for virtual MVMUs 0 and 1 which are reserved for input and output
-    for(unsigned int vMVMU = 2; vMVMU < nVMVMUs_; ++vMVMU) {
-        vmvmu2vcore_[vMVMU] = (vMVMU - 2)/nMVMUSPerCore + 2;
+    nVCores_ += (nVMVMUs_ - nTiles4input - nTiles4output - 1)/nMVMUSPerCore + 1; // -2 accounts for virtual MVMUs 0 and 1 which are reserved for input and output
+    for(unsigned int vMVMU = nTiles4input + nTiles4output; vMVMU < nVMVMUs_; ++vMVMU) {
+        vmvmu2vcore_[vMVMU] = (vMVMU - nTiles4input - nTiles4output)/nMVMUSPerCore + nTiles4input + nTiles4output;
     }
 
 }
@@ -354,14 +369,15 @@ void Partitioner::assignVTilesInVMVMUOrder() {
     vcore2vtile_.resize(nVCores_);
 
     // Reserve virtual tiles 0 and 1 for input and output tiles respectively
-    nVTiles_ = 2;
-    vcore2vtile_[0] = 0;
-    vcore2vtile_[1] = 1;
+    nVTiles_ = nTiles4input + nTiles4output;
+    for(unsigned int vCore = 0; vCore < nVTiles_; ++vCore) {
+        vcore2vtile_[vCore] = vCore;
+    }
 
     // Assign virtual cores to virtual tiles in order
-    nVTiles_ += (nVCores_ - 2 - 1)/N_CORES_PER_TILE + 1; // -2 accounts for virtual cores 0 and 1 which are reserved for input and output
-    for(unsigned int vCore = 2; vCore < nVCores_; ++vCore) {
-        vcore2vtile_[vCore] = (vCore - 2)/N_CORES_PER_TILE + 2;;
+    nVTiles_ += (nVCores_ - nTiles4input - nTiles4output - 1)/N_CORES_PER_TILE + 1; // -2 accounts for virtual cores 0 and 1 which are reserved for input and output
+    for(unsigned int vCore = nTiles4input + nTiles4output; vCore < nVCores_; ++vCore) {
+        vcore2vtile_[vCore] = (vCore - nTiles4input - nTiles4output)/N_CORES_PER_TILE + nTiles4input + nTiles4output;
     }
 
 }
@@ -537,6 +553,9 @@ void Partitioner::insertSendsAndRecives() {
 
 void Partitioner::insertInputAndOutput() {
 
+    memory4input_used = 0;
+    memory4output_used = 0;
+
     // Replace pseudo input and output operations
     std::map<InputVectorTile*, std::map<unsigned int, LoadOperation*>> loads;
     std::map<InputVectorTile*, std::map<unsigned int, ReceiveOperation*>> recvs;
@@ -553,7 +572,8 @@ void Partitioner::insertInputAndOutput() {
                     if(recvs[src][getVTile(consumer)] == NULL) {
                         if(inputs[src] == NULL) {
                             WriteInputOperation* input = new WriteInputOperation(model_, src);
-                            assignVMVMU(input, 0);
+                            memory4input_used += input->length();
+                            assignVMVMU(input, (memory4input_used - 1) / tile_memory_size__);
                             inputs[src] = input;
                         }
                         SendOperation* send = new SendOperation(model_, inputs[src]);
@@ -584,7 +604,8 @@ void Partitioner::insertInputAndOutput() {
                 cloneAssignment(pseudoOutput, send);
                 ReceiveOperation* recv = new ReceiveOperation(model_, send);
                 numReceives_ += recv->length();
-                assignVMVMU(recv, 1);
+                memory4output_used += recv->length();
+                assignVMVMU(recv, nTiles4input + (memory4output_used - 1) / tile_memory_size__);
                 ReadOutputOperation* output = new ReadOutputOperation(model_, recv, dst);
                 cloneAssignment(recv, output);
                 producer->removeUser(pseudoOutput);

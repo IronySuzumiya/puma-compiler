@@ -45,7 +45,7 @@ void ModelInstanceImpl::generateData() {
 
     // TODO: Define ABI for laying out the data
 
-    std::cout << "Generating data files... " << std::flush;
+    /*std::cout << "Generating data files... " << std::flush;
 
     for(auto m = model_->const_mat_begin(); m != model_->const_mat_end(); ++m) {
         ConstantMatrixImpl* mat = *m;
@@ -108,7 +108,7 @@ void ModelInstanceImpl::generateData() {
         }
     }
 
-    std::cout << "done." << std::endl;
+    std::cout << "done." << std::endl;*/
 
 }
 

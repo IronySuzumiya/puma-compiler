@@ -25,10 +25,16 @@ class Partitioner {
         unsigned int nVCores_;
         unsigned int nVTiles_;
 
+        unsigned int nTiles4input;
+        unsigned int nTiles4output;
+
+        unsigned int memory4input_used;
+        unsigned int memory4output_used;
+
         std::vector<ConstantMatrixTile*> cmatTiles_;
         std::vector<TrainingMatrixTile*> tmatTiles_;
         std::map<Operation*, unsigned int> op2vmvmu_;
-        std::map<ConstantMatrixTile*, unsigned int> cmat2vmvmu_;
+        std::map<ConstantMatrixTile*, std::set<unsigned int>> cmat2vmvmu_;
         std::map<TrainingMatrixTile*, unsigned int> tmat2vmvmu_;
         std::vector<unsigned int> vmvmu2vcore_;
         std::vector<unsigned int> vcore2vtile_;
@@ -66,9 +72,9 @@ class Partitioner {
         unsigned int getNVMVMUs() { return nVMVMUs_; }
         unsigned int getNVCores() { return nVCores_; }
         unsigned int getNVTiles() { return nVTiles_; }
-        unsigned int getVMVMU(ConstantMatrixTile* tile);
-        unsigned int getVCore(ConstantMatrixTile* tile);
-        unsigned int getVTile(ConstantMatrixTile* tile);
+        std::set<unsigned int> getVMVMU(ConstantMatrixTile* tile);
+        std::set<unsigned int> getVCore(ConstantMatrixTile* tile);
+        std::set<unsigned int> getVTile(ConstantMatrixTile* tile);
         unsigned int getVMVMU(TrainingMatrixTile* tile);
         unsigned int getVCore(TrainingMatrixTile* tile);
         unsigned int getVTile(TrainingMatrixTile* tile);
