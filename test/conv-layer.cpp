@@ -13,15 +13,19 @@
 #include "puma.h"
 #include "conv-layer.h"
 
+unsigned int input_size__;
+unsigned int output_size__;
+unsigned int tile_memory_size__ = 32768;
+
 int main(int argc, char** argv) {
 
     Model model = Model::create("conv-layer");
 
     // Process parameters
-    unsigned int in_size_x = 5;//14;
-    unsigned int in_size_y = 5;//14;
-    unsigned int in_channels = 128;//512;
-    unsigned int out_channels = 256;//512;
+    unsigned int in_size_x = 14;
+    unsigned int in_size_y = 14;
+    unsigned int in_channels = 256;
+    unsigned int out_channels = 512;
     unsigned int k_size_x = 3;
     unsigned int k_size_y = 3;
     if(argc == 7) {
@@ -32,6 +36,9 @@ int main(int argc, char** argv) {
         k_size_x = atoi(argv[5]);
         k_size_y = atoi(argv[6]);
     }
+
+    input_size__ = in_size_x * in_size_y * in_channels;
+    output_size__ = in_size_x * in_size_y * out_channels;
 
     // Input stream
     auto in_stream = InputImagePixelStream::create(model, "in_stream", in_size_x, in_size_y, in_channels);
